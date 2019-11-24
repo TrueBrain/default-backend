@@ -1,0 +1,39 @@
+name: Publish image
+
+on:
+  push:
+    branches:
+    - master
+    tags:
+    - '*'
+
+jobs:
+  publish_image:
+    name: Publish image
+    runs-on: ubuntu-latest
+    # A fork meant for development doesn't need to publish an image.
+    # So if DOCKER_USERNAME is not set, assume it is a fork that doesn't want
+    # to publish its own version on the registry.
+    if: secrets.DOCKER_USERNAME != ""
+
+    steps:
+    - uses: actions/checkout@v1
+
+    - name: Set variables
+      id: vars
+      run: |
+        GITHUB_REPOSITORY_LC=$(echo "${GITHUB_REPOSITORY}" | tr [A-Z] [a-z])
+        echo "::set-output name=name::${GITHUB_REPOSITORY_LC}"
+
+        VERSION=$(git describe --tags)
+        DATE=$(date +%Y%m%d-%H%M)
+        echo "::set-output name=version::${VERSION}-${DATE}"
+
+    - name: Build
+      run: |
+        docker build -t ${{ steps.vars.outputs.name }}:${{ steps.vars.outputs.version }} .
+
+    - name: Publish
+      run: |
+        echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+        docker push $@{{ steps.vars.outputs.version }}:$@{{ steps.vars.outputs.version }}
