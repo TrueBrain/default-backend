@@ -22,12 +22,37 @@ jobs:
         echo "::set-output name=name::${GITHUB_REPOSITORY_LC}"
 
         VERSION=$(git describe --tags)
-        DATE=$(date +%Y%m%d-%H%M)
-        echo "::set-output name=version::${VERSION}-${DATE}"
+        echo "::set-output name=version::${VERSION}"
+
+        DATE=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+        echo "::set-output name=date::${DATE}"
+
+        if [ "${GITHUB_REF}" = "refs/heads/master" ]; then
+          TAG="development"
+          TAGS="dev"
+        else
+          VERSION_MAJOR=$(echo ${VERSION} | sed -r 's/([0-9]+).*/\1/')
+          VERSION_MINOR=$(echo ${VERSION} | sed -r 's/([0-9]+).([0-9]+).*/\1.\2/')
+
+          TAG="${VERSION}"
+          TAGS="${VERSION_MAJOR} ${VERSION_MINOR} latest"
+        fi
+        echo "::set-output name=tag::${TAG}"
+        echo "::set-output name=tags::${TAGS}"
 
     - name: Build
       run: |
-        docker build -t ${{ steps.vars.outputs.name }}:${{ steps.vars.outputs.version }} .
+        docker build -t \
+          ${{ steps.vars.outputs.name }}:${{ steps.vars.outputs.tag }} \
+          --build-arg BUILD_DATE=${{ steps.vars.outputs.date }} \
+          --build-arg BUILD_VERSION=${{ steps.vars.outputs.version }} \
+          .
+
+        # If this tag has multiple tags, publish them too
+        for tag in ${{ steps.vars.outputs.tags }}; do
+          docker tag ${{ steps.vars.outputs.name }}:${{ steps.vars.outputs.tag }} \
+            ${{ steps.vars.outputs.name }}:${tag}
+        done
 
     - name: Publish
       run: |
@@ -35,5 +60,5 @@ jobs:
           echo "Skipping, as no DOCKER_USERNAME is set"
         else
           echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-          docker push ${{ steps.vars.outputs.name }}:${{ steps.vars.outputs.version }}
+          docker push ${{ steps.vars.outputs.name }}
         fi
