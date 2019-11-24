@@ -1,0 +1,15 @@
+name: Testing
+
+on:
+  pull_request:
+    branches:
+    - master
+
+jobs:
+  build:
+    name: Build image
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: Build
+      run: docker build .
