@@ -11,10 +11,6 @@ jobs:
   publish_image:
     name: Publish image
     runs-on: ubuntu-latest
-    # A fork meant for development doesn't need to publish an image.
-    # So if DOCKER_USERNAME is not set, assume it is a fork that doesn't want
-    # to publish its own version on the registry.
-    if: secrets.DOCKER_USERNAME != ""
 
     steps:
     - uses: actions/checkout@v1
