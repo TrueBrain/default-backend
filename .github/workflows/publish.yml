@@ -31,5 +31,9 @@ jobs:
 
     - name: Publish
       run: |
-        echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
-        docker push $@{{ steps.vars.outputs.version }}:$@{{ steps.vars.outputs.version }}
+        if [ -z "${{ secrets.DOCKER_USERNAME }}" ]; then
+          echo "Skipping, as no DOCKER_USERNAME is set"
+        else
+          echo ${{ secrets.DOCKER_PASSWORD }} | docker login --username ${{ secrets.DOCKER_USERNAME }} --password-stdin
+          docker push $@{{ steps.vars.outputs.version }}:$@{{ steps.vars.outputs.version }}
+        fi
